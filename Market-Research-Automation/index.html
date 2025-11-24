@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Research Automation at Scale - AI-Powered Firmographic Intelligence</title>
+    <meta name="description" content="Automate your market research with AI-powered firmographic data extraction. Upload company lists and get comprehensive insights using multiple LLM providers.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
+                        <path d="M16 8L22 12V20L16 24L10 20V12L16 8Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                        <circle cx="16" cy="16" r="3" fill="white"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+                                <stop offset="0%" stop-color="#6366f1"/>
+                                <stop offset="100%" stop-color="#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>Market Research <span class="gradient-text">Automation</span></h1>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn active" data-section="upload">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        Upload
+                    </button>
+                    <button class="nav-btn" data-section="configure">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                        </svg>
+                        Configure
+                    </button>
+                    <button class="nav-btn" data-section="results">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M18 17V9M13 17V5M8 17v-3"/>
+                        </svg>
+                        Results
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Upload Section -->
+            <section id="upload-section" class="section active">
+                <div class="section-header">
+                    <h2>Upload Company List</h2>
+                    <p>Upload a CSV file containing company names or domains to begin your research</p>
+                </div>
+                
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                    </div>
+                    <h3>Drop your CSV file here</h3>
+                    <p>or click to browse</p>
+                    <input type="file" id="csv-input" accept=".csv" hidden>
+                    <button class="btn-secondary" onclick="document.getElementById('csv-input').click()">
+                        Browse Files
+                    </button>
+                    <div class="upload-hint">
+                        Expected columns: Company Name, Domain, or any identifier
+                    </div>
+                </div>
+
+                <div class="file-preview" id="file-preview" style="display: none;">
+                    <div class="file-info">
+                        <div class="file-icon">📄</div>
+                        <div class="file-details">
+                            <h4 id="file-name">companies.csv</h4>
+                            <p id="file-stats">0 companies • 0 KB</p>
+                        </div>
+                        <button class="btn-icon" id="remove-file">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="data-preview">
+                        <table id="preview-table">
+                            <thead id="preview-header"></thead>
+                            <tbody id="preview-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Configure Section -->
+            <section id="configure-section" class="section">
+                <div class="section-header">
+                    <h2>Configure Research Parameters</h2>
+                    <p>Select your AI model and customize the research prompt</p>
+                </div>
+
+                <div class="config-grid">
+                    <!-- LLM Provider Selection -->
+                    <div class="config-card">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                            AI Model Selection
+                        </h3>
+                        <div class="llm-grid">
+                            <label class="llm-option">
+                                <input type="radio" name="llm" value="gemini" checked>
+                                <div class="llm-card">
+                                    <div class="llm-icon" style="background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);">
+                                        <span>G</span>
+                                    </div>
+                                    <div class="llm-info">
+                                        <h4>Gemini Pro</h4>
+                                        <p>Google's advanced AI</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="llm-option">
+                                <input type="radio" name="llm" value="chatgpt">
+                                <div class="llm-card">
+                                    <div class="llm-icon" style="background: linear-gradient(135deg, #10a37f 0%, #1a7f64 100%);">
+                                        <span>⚡</span>
+                                    </div>
+                                    <div class="llm-info">
+                                        <h4>ChatGPT</h4>
+                                        <p>OpenAI GPT-4</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="llm-option">
+                                <input type="radio" name="llm" value="claude">
+                                <div class="llm-card">
+                                    <div class="llm-icon" style="background: linear-gradient(135deg, #cc785c 0%, #d4a574 100%);">
+                                        <span>C</span>
+                                    </div>
+                                    <div class="llm-info">
+                                        <h4>Claude Sonnet</h4>
+                                        <p>Anthropic's Claude</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="llm-option">
+                                <input type="radio" name="llm" value="grok">
+                                <div class="llm-card">
+                                    <div class="llm-icon" style="background: linear-gradient(135deg, #1da1f2 0%, #0d8bd9 100%);">
+                                        <span>𝕏</span>
+                                    </div>
+                                    <div class="llm-info">
+                                        <h4>Grok</h4>
+                                        <p>xAI's Grok</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- API Key Input -->
+                    <div class="config-card">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            API Configuration
+                        </h3>
+                        <div class="input-group">
+                            <label for="api-key">API Key</label>
+                            <input type="password" id="api-key" placeholder="Enter your API key" class="input">
+                            <small>Your API key is stored locally and never sent to our servers</small>
+                        </div>
+                    </div>
+
+                    <!-- System Instructions -->
+                    <div class="config-card full-width">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            System Instructions
+                        </h3>
+                        <textarea id="system-instructions" class="textarea" rows="4" placeholder="Define the AI's behavior and constraints...">You are a professional market research analyst specializing in firmographic data extraction. Provide accurate, well-structured information based on publicly available data. Be concise and factual.</textarea>
+                    </div>
+
+                    <!-- Research Prompt -->
+                    <div class="config-card full-width">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            Research Prompt
+                        </h3>
+                        <textarea id="research-prompt" class="textarea" rows="8" placeholder="Define what information to extract...">For the company "{company_name}", please research and provide the following firmographic information:
+
+1. **Annual Revenue**: Estimated or reported annual revenue (in USD)
+2. **Employee Count**: Current number of employees
+3. **Website**: Official company website URL
+4. **Email Domain**: Primary email domain used by the company
+5. **Industry**: Primary industry classification
+6. **Sub-Industry**: Specific sub-industry or sector
+7. **Headquarters Location**: City, State/Province, Country
+8. **LinkedIn Page**: Official LinkedIn company page URL
+
+Please format the response as a structured JSON object with these exact keys: annual_revenue, employee_count, website, email_domain, industry, sub_industry, headquarters_location, linkedin_url. If any information is not available, use "N/A".</textarea>
+                        <small>Use {company_name} as a placeholder for the company identifier from your CSV</small>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn-primary" id="start-research">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Start Research
+                    </button>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="section">
+                <div class="section-header">
+                    <h2>Research Results</h2>
+                    <p>View and export your firmographic research data</p>
+                </div>
+
+                <div class="results-empty" id="results-empty">
+                    <div class="empty-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <path d="M3 3v18h18"/>
+                            <path d="M18 17V9M13 17V5M8 17v-3"/>
+                        </svg>
+                    </div>
+                    <h3>No results yet</h3>
+                    <p>Upload a CSV and configure your research parameters to get started</p>
+                </div>
+
+                <div class="results-container" id="results-container" style="display: none;">
+                    <div class="results-header">
+                        <div class="results-stats">
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-companies">0</div>
+                                <div class="stat-label">Total Companies</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="completed-count">0</div>
+                                <div class="stat-label">Completed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="progress-percent">0%</div>
+                                <div class="stat-label">Progress</div>
+                            </div>
+                        </div>
+                        <div class="results-actions">
+                            <button class="btn-secondary" id="export-csv">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                                </svg>
+                                Export CSV
+                            </button>
+                            <button class="btn-secondary" id="export-json">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                                </svg>
+                                Export JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="results-table-container">
+                        <table class="results-table" id="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Annual Revenue</th>
+                                    <th>Employees</th>
+                                    <th>Website</th>
+                                    <th>Industry</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
