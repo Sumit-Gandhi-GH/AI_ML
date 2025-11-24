@@ -35,5 +35,7 @@ ENV/
 *.db
 *.csv
 !example.csv
+!google_events_*.csv
+!sample_data/*.csv
 artifacts/
 .gemini/

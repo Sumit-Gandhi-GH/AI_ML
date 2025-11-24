@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structured Data Query Engine</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>DataQuery</h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-tab="setup">
+                    <span class="icon">⚙️</span> Setup Data
+                </li>
+                <li data-tab="query">
+                    <span class="icon">🔍</span> Query Data
+                </li>
+                <li data-tab="legacy">
+                    <span class="icon">📊</span> Legacy Tools
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- SETUP SECTION -->
+            <section id="tab-setup" class="tab-content active">
+                <header class="section-header">
+                    <h1>Data Setup</h1>
+                    <p>Upload your data tables and data dictionary to get started.</p>
+                </header>
+
+                <div class="setup-grid">
+                    <!-- Table Upload -->
+                    <div class="card upload-card">
+                        <h3>1. Upload Data Tables</h3>
+                        <p>Upload CSV files representing your database tables.</p>
+                        <div class="file-drop-area" id="table-drop-area">
+                            <span class="file-msg">Drag & drop CSV here or click to upload</span>
+                            <input class="file-input" type="file" id="table-file-input" accept=".csv" multiple>
+                        </div>
+                        <div class="input-group">
+                            <label>Table Name (Optional)</label>
+                            <input type="text" id="table-name-input" placeholder="e.g., users, orders">
+                        </div>
+                        <button class="btn primary" id="upload-table-btn">Upload Table</button>
+
+                        <div class="uploaded-list" id="uploaded-tables-list">
+                            <h4>Uploaded Tables:</h4>
+                            <ul id="tables-ul">
+                                <li class="empty">No tables uploaded yet.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Dictionary Upload -->
+                    <div class="card upload-card">
+                        <h3>2. Upload Data Dictionary</h3>
+                        <p>Upload a CSV describing your schema (Table, Column, Description).</p>
+                        <div class="file-drop-area" id="dict-drop-area">
+                            <span class="file-msg">Drag & drop Dictionary CSV here</span>
+                            <input class="file-input" type="file" id="dict-file-input" accept=".csv">
+                        </div>
+
+                        <div class="config-group">
+                            <label>Embedding Provider (for Indexing)</label>
+                            <select id="dict-provider">
+                                <option value="sentence-transformers">Sentence Transformers (Free/Local)</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="google">Google Gemini</option>
+                            </select>
+                        </div>
+
+                        <div class="config-group hidden" id="dict-api-key-group">
+                            <label>API Key</label>
+                            <input type="password" id="dict-api-key" placeholder="Enter API Key">
+                        </div>
+
+                        <button class="btn primary" id="upload-dict-btn">Upload & Index Dictionary</button>
+                        <div id="dict-status" class="status-msg"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QUERY SECTION -->
+            <section id="tab-query" class="tab-content hidden">
+                <header class="section-header">
+                    <h1>Query Data</h1>
+                    <p>Ask questions in natural language to query your uploaded data.</p>
+                </header>
+
+                <div class="query-container">
+                    <!-- Configuration Bar -->
+                    <div class="query-config">
+                        <div class="config-item">
+                            <label>Model</label>
+                            <select id="query-model" onchange="checkCustomModel(this)">
+                                <optgroup label="Google Gemini">
+                                    <option value="gemini-3-pro-preview">Gemini 3 Pro (Preview)</option>
+                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                </optgroup>
+                                <optgroup label="OpenAI GPT">
+                                    <option value="gpt-5.1">GPT-5.1 (Best for Coding)</option>
+                                    <option value="gpt-5">GPT-5</option>
+                                    <option value="gpt-5-pro">GPT-5 Pro</option>
+                                    <option value="gpt-5-mini">GPT-5 Mini</option>
+                                </optgroup>
+                                <option value="custom">Custom Model...</option>
+                            </select>
+                            <input type="text" id="custom-model-input" class="hidden"
+                                placeholder="e.g., models/gemini-1.5-pro-002" style="margin-top: 5px;">
+                        </div>
+                        <div class="config-item">
+                            <label>LLM API Key</label>
+                            <input type="password" id="query-api-key" placeholder="Gemini or OpenAI Key">
+                        </div>
+                    </div>
+
+                    <!-- Chat Interface -->
+                    <div class="chat-box">
+                        <div class="chat-input-area">
+                            <textarea id="user-question"
+                                placeholder="Ask a question about your data... (e.g., 'Show me top 5 products by sales')"></textarea>
+                            <button class="btn primary" id="ask-btn">Ask Gemini</button>
+                        </div>
+                    </div>
+
+                    <!-- Results Area -->
+                    <div id="query-results" class="results-area hidden">
+                        <div class="result-card">
+                            <div class="result-header">
+                                <h3>Generated SQL</h3>
+                                <button class="btn sm" id="copy-sql-btn">Copy</button>
+                            </div>
+                            <pre><code id="sql-output" class="language-sql">SELECT * FROM ...</code></pre>
+                        </div>
+
+                        <div class="result-card">
+                            <h3>Result Data</h3>
+                            <div class="table-wrapper">
+                                <table id="result-table">
+                                    <!-- JS will populate -->
+                                </table>
+                            </div>
+                            <div id="result-error" class="error-msg hidden"></div>
+                        </div>
+
+                        <div class="result-card">
+                            <h3>Relevant Schema Context</h3>
+                            <div id="schema-context" class="schema-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LEGACY SECTION (Original Tool) -->
+            <section id="tab-legacy" class="tab-content hidden">
+                <div class="legacy-wrapper">
+                    <iframe src="/legacy_placeholder" style="width:100%; height:800px; border:none;"
+                        id="legacy-frame"></iframe>
+                    <div class="container">
+                        <h1>Embedding Generation Tool</h1>
+                        <p class="subtitle">Generate embeddings for your CSV data using various providers</p>
+
+                        <!-- File Upload -->
+                        <div class="upload-section" id="file-upload-area">
+                            <input type="file" id="csv-file" accept=".csv" hidden>
+                            <div class="upload-content">
+                                <div class="upload-icon">📁</div>
+                                <p>Drag & drop your CSV file here or click to browse</p>
+                                <p class="upload-hint">Supported format: .csv</p>
+                            </div>
+                        </div>
+
+                        <!-- File Info -->
+                        <div id="file-info" class="file-info hidden">
+                            <div class="info-item">
+                                <span class="label">File:</span>
+                                <span class="value" id="file-name">filename.csv</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Rows:</span>
+                                <span class="value" id="row-count">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Configuration -->
+                        <div id="config-section" class="config-section hidden">
+                            <div class="config-grid">
+                                <div class="config-group">
+                                    <label for="provider">Provider</label>
+                                    <select id="provider">
+                                        <option value="sentence-transformers">Sentence Transformers (Local)</option>
+                                        <option value="openai">OpenAI</option>
+                                        <option value="google">Google Gemini</option>
+                                    </select>
+                                </div>
+
+                                <div class="config-group hidden" id="api-key-group">
+                                    <label for="api-key">API Key</label>
+                                    <input type="password" id="api-key" placeholder="Enter your API key">
+                                </div>
+
+                                <div class="config-group hidden" id="model-group">
+                                    <label for="model">Model (Optional)</label>
+                                    <input type="text" id="model" placeholder="e.g. text-embedding-3-small">
+                                    <p class="hint" id="model-hint"></p>
+                                </div>
+                            </div>
+
+                            <div class="columns-selection">
+                                <h3>Select Columns to Embed</h3>
+                                <div class="columns-grid" id="text-columns">
+                                    <!-- Populated by JS -->
+                                </div>
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" id="combine-columns" checked>
+                                    <label for="combine-columns">Combine selected columns into single text</label>
+                                </div>
+                            </div>
+
+                            <div class="columns-selection">
+                                <h3>Select Metadata Columns (Optional)</h3>
+                                <div class="columns-grid" id="metadata-columns">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+
+                            <button id="generate-btn" class="primary-btn">
+                                <span>Generate Embeddings</span>
+                            </button>
+                        </div>
+
+                        <!-- Progress -->
+                        <div id="progress-section" class="progress-section">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <p class="progress-text" id="progress-text">Processing...</p>
+                        </div>
+
+                        <!-- Results -->
+                        <div id="results-section" class="results-section hidden">
+                            <div class="success-banner">
+                                <span class="icon">✅</span>
+                                <div class="banner-content">
+                                    <h3>Generation Complete</h3>
+                                    <p>Generated <span id="embedding-count">0</span> embeddings with dimension <span
+                                            id="embedding-dim">0</span></p>
+                                </div>
+                            </div>
+
+                            <div class="actions-grid">
+                                <div class="action-card">
+                                    <h4>Download</h4>
+                                    <div class="download-controls">
+                                        <select id="output-format">
+                                            <option value="json">JSON</option>
+                                            <option value="jsonl">JSONL</option>
+                                            <option value="pinecone">Pinecone Format</option>
+                                        </select>
+                                        <button id="download-btn" class="secondary-btn">
+                                            <span>📥 Download Embeddings</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="action-card">
+                                    <h4>Clustering</h4>
+                                    <div class="cluster-controls">
+                                        <input type="number" id="n-clusters" value="5" min="2" max="50"
+                                            style="width: 60px;">
+                                        <button id="cluster-btn" class="secondary-btn">
+                                            <span>🧩 Cluster Data</span>
+                                        </button>
+                                    </div>
+                                    <div id="cluster-results" class="hidden">
+                                        <table class="simple-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Cluster</th>
+                                                    <th>Count</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cluster-body"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="reset-btn" class="text-btn">Start Over</button>
+                        </div>
+
+                        <!-- Alert -->
+                        <div id="alert" class="alert"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

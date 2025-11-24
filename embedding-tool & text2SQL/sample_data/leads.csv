@@ -1,0 +1,11 @@
+lead_id,account_id,first_name,last_name,title,email,lead_score,last_active_date
+L001,A001,John,Doe,VP Operations,j.doe@acme.com,75,2023-10-15
+L002,A001,Jane,Smith,Plant Manager,j.smith@acme.com,60,2023-09-20
+L003,A002,Hank,Scorpio,CEO,hank@globex.com,95,2023-10-25
+L004,A004,Peter,Gibbons,Programmer,peter@initech.com,45,2023-10-01
+L005,A004,Bill,Lumbergh,VP,bill@initech.com,80,2023-10-26
+L006,A006,Tony,Stark,CEO,tony@stark.com,99,2023-10-27
+L007,A006,Pepper,Potts,COO,pepper@stark.com,90,2023-10-20
+L008,A008,Miles,Dyson,Director,miles@cyberdyne.com,85,2023-10-10
+L009,A009,William,Bell,Founder,bell@massivedynamic.com,50,2023-08-15
+L010,A010,Gavin,Belson,CEO,gavin@hooli.com,10,2023-05-01

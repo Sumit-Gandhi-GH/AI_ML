@@ -80,7 +80,7 @@ class EmbeddingGenerator:
             import google.generativeai as genai
             genai.configure(api_key=self.api_key)
             self.embedding_model = genai
-            self.model = self.model or "models/text-embedding-004"
+            self.model = self.model or "models/embedding-001"
             self.dimension = 768
             logger.info(f"Initialized Google Gemini with model: {self.model}, dimension: {self.dimension}")
             
@@ -135,12 +135,51 @@ class EmbeddingGenerator:
             for i, text in enumerate(texts):
                 if i % 10 == 0:
                     logger.info(f"Processing {i+1}/{len(texts)}")
-                result = self.embedding_model.embed_content(
-                    model=self.model,
-                    content=text,
-                    task_type="retrieval_document"
-                )
-                embeddings.append(result['embedding'])
+                
+                # Ensure model is a string
+                model_name = str(self.model)
+                
+                # Helper to try embedding with a specific model name
+                def try_embed(m_name, content):
+                    return self.embedding_model.embed_content(
+                        model=m_name,
+                        content=content,
+                        task_type="retrieval_document"
+                    )
+
+                try:
+                    result = try_embed(model_name, text)
+                    embeddings.append(result['embedding'])
+                except Exception as e:
+                    logger.warning(f"Error embedding with {model_name}: {e}. Retrying with fallbacks...")
+                    
+                    # List of fallback models/formats to try
+                    # Some versions want 'models/', some don't. Some models are deprecated.
+                    fallbacks = [
+                        "models/embedding-001", 
+                        "embedding-001",
+                        "models/text-embedding-004",
+                        "text-embedding-004"
+                    ]
+                    
+                    success = False
+                    for fb_model in fallbacks:
+                        if fb_model == model_name: continue
+                        try:
+                            logger.info(f"Retrying with {fb_model}...")
+                            result = try_embed(fb_model, text)
+                            embeddings.append(result['embedding'])
+                            success = True
+                            # Update self.model to the working one for future calls
+                            self.model = fb_model
+                            logger.info(f"Switched default model to {fb_model}")
+                            break
+                        except Exception as fb_e:
+                            logger.warning(f"Fallback {fb_model} failed: {fb_e}")
+                    
+                    if not success:
+                        logger.error(f"All Gemini embedding attempts failed for text. Last error: {e}")
+                        raise e
             return embeddings
     
     def get_dimension(self) -> int:

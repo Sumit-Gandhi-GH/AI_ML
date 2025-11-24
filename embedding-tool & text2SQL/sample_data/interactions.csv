@@ -1,0 +1,11 @@
+interaction_id,lead_id,type,date,notes,sentiment
+I001,L001,Call,2023-10-15,"Discussed supply chain issues. Interested in our optimization module. Budget cycle starts in Jan.",Positive
+I002,L003,Meeting,2023-10-25,"Demo went well. Hank loved the dashboard. Wants to move fast.",Very Positive
+I003,L004,Email,2023-10-01,"Sent whitepaper. No response yet.",Neutral
+I004,L005,Call,2023-10-26,"Bill is concerned about implementation time. Need to send case studies.",Negative
+I005,L006,Meeting,2023-10-27,"Tony wants full integration with JARVIS. Technical deep dive needed.",Positive
+I006,L008,Call,2023-10-10,"Miles asked about security protocols. Sent compliance doc.",Neutral
+I007,L010,Email,2023-05-01,"Gavin is unhappy with current performance. Threatening to churn.",Very Negative
+I008,L001,Email,2023-10-18,"Followed up on budget. John said he is pushing for it.",Positive
+I009,L007,Call,2023-10-20,"Pepper wants to review the contract terms. Legal review next week.",Neutral
+I010,L002,Call,2023-09-20,"Jane is worried about training the team. Offered onsite workshop.",Neutral

@@ -554,8 +554,111 @@ def download_logic(job_id, format_type):
         logger.error(f"Error in download logic: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+
+from query_engine import SchemaManager, SQLGenerator, SQLExecutor
+
+# Initialize Query Engine Components
+schema_manager = SchemaManager()
+sql_executor = SQLExecutor(schema_manager)
+
+@app.route('/api/upload_table', methods=['POST'])
+def upload_table():
+    """Upload a CSV to be used as a SQL table."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        table_name = request.form.get('table_name', file.filename.replace('.csv', ''))
+        
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+            
+        # Save temp
+        file_path = UPLOAD_FOLDER / f"table_{table_name}.csv"
+        file.save(file_path)
+        
+        success, msg = schema_manager.load_table(table_name, str(file_path))
+        
+        if success:
+            return jsonify({"message": msg, "table_name": table_name})
+        else:
+            return jsonify({"error": msg}), 500
+            
+    except Exception as e:
+        logger.error(f"Error uploading table: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/upload_dictionary', methods=['POST'])
+def upload_dictionary():
+    """Upload Data Dictionary CSV."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+            
+        file = request.files['file']
+        file_path = UPLOAD_FOLDER / "data_dictionary.csv"
+        file.save(file_path)
+        
+        # Load
+        success, msg = schema_manager.load_data_dictionary(str(file_path))
+        if not success:
+            return jsonify({"error": msg}), 400
+            
+        # Index (using default provider for now, or user provided)
+        # We can get params from form data
+        provider = request.form.get('provider', 'sentence-transformers')
+        api_key = request.form.get('api_key')
+        model = request.form.get('model')
+        
+        idx_success, idx_msg = schema_manager.index_dictionary(provider, api_key, model)
+        
+        if idx_success:
+            return jsonify({"message": f"{msg} {idx_msg}"})
+        else:
+            return jsonify({"warning": f"{msg} But indexing failed: {idx_msg}"})
+            
+    except Exception as e:
+        logger.error(f"Error uploading dictionary: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/query', methods=['POST'])
+def process_query():
+    """Process a natural language query."""
+    try:
+        data = request.json
+        question = data.get('question')
+        api_key = data.get('api_key')
+        model = data.get('model', 'gemini-1.5-pro')
+        
+        if not question or not api_key:
+            return jsonify({"error": "Question and API Key are required"}), 400
+            
+        # 1. Search relevant schema
+        relevant_schema = schema_manager.search_relevant_schema(question)
+        all_tables = schema_manager.get_all_tables()
+        
+        # 2. Generate SQL
+        generator = SQLGenerator(api_key, model)
+        sql = generator.generate_sql(question, relevant_schema, all_tables)
+        
+        # 3. Execute SQL
+        columns, rows, error = sql_executor.execute(sql)
+        
+        return jsonify({
+            "sql": sql,
+            "columns": columns,
+            "rows": rows,
+            "error": error,
+            "relevant_schema": relevant_schema
+        })
+        
+    except Exception as e:
+        logger.error(f"Error processing query: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"\nEmbedding Generation Tool running on http://localhost:{port}")
+    print(f"\nStructured Data Query Tool running on http://localhost:{port}")
     print(f"Open your browser and navigate to the URL above\n")
     app.run(debug=False, port=port, host='0.0.0.0')

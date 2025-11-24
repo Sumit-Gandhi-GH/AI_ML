@@ -1,0 +1,11 @@
+account_id,account_name,industry,annual_revenue,region,customer_status,health_score
+A001,Acme Corp,Manufacturing,50000000,North America,Active,85
+A002,Globex Inc,Technology,120000000,Europe,Active,92
+A003,Soylent Corp,Food & Beverage,75000000,Asia,Churned,40
+A004,Initech,Software,25000000,North America,Prospect,0
+A005,Umbrella Corp,Pharmaceuticals,200000000,Europe,Active,78
+A006,Stark Ind,Defense,500000000,North America,Active,98
+A007,Wayne Ent,Conglomerate,450000000,North America,Active,95
+A008,Cyberdyne,Technology,80000000,North America,Prospect,0
+A009,Massive Dynamic,Science,150000000,North America,Active,65
+A010,Hooli,Software,60000000,North America,Churned,35
