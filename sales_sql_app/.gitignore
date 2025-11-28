@@ -1,0 +1,4 @@
+mock_sales.db
+__pycache__/
+.env
+.ipynb_checkpoints/
