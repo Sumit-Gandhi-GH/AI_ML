@@ -23,13 +23,29 @@ def format_markdown(text: str) -> str:
     """
     return text
 
-def determine_domain(user_query: str) -> str:
+def determine_intent(user_query: str) -> str:
     """
-    Simple router to determine if the query is related to Sales or General.
+    Classifies the user's intent into: SAMPLE_DATA, GREETING, SALES_QUERY, or GENERAL.
     """
-    sales_keywords = ['lead', 'deal', 'revenue', 'sales', 'rep', 'quota', 'stage', 'close']
     query_lower = user_query.lower()
     
+    # Check for Sample Data requests
+    sample_keywords = ['sample', 'example', 'show data', 'preview', 'dummy data', 'mock data']
+    if any(keyword in query_lower for keyword in sample_keywords):
+        return "SAMPLE_DATA"
+        
+    # Check for Greetings
+    greeting_keywords = ['hi', 'hello', 'hey', 'help', 'start', 'guide']
+    # Exact match or starts with greeting
+    if query_lower in greeting_keywords or any(query_lower.startswith(w + " ") for w in greeting_keywords):
+        return "GREETING"
+        
+    # Check for Sales/SQL Queries
+    sales_keywords = [
+        'lead', 'deal', 'revenue', 'sales', 'rep', 'quota', 'stage', 'close', 
+        'count', 'sum', 'average', 'how many', 'list', 'show', 'what is', 'top', 'bottom'
+    ]
     if any(keyword in query_lower for keyword in sales_keywords):
-        return "Sales"
-    return "General"
+        return "SALES_QUERY"
+        
+    return "GENERAL"

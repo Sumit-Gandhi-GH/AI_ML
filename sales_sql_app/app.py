@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from chain import generate_sql, execute_sql, setup_mock_db
-from utils import mask_pii, determine_domain
+from utils import mask_pii, determine_intent
 
 # Initialize Mock DB
 setup_mock_db()
@@ -48,14 +48,51 @@ if prompt := st.chat_input("Ask a question about your sales data..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Determine Domain
-    domain = determine_domain(prompt)
-    if domain != "Sales":
-        response = "I specialize in Sales data. Please ask me about leads, deals, revenue, or sales reps."
+    # Determine Intent
+    intent = determine_intent(prompt)
+    
+    if intent == "GREETING":
+        response = "Hello! I'm your Sales Data Assistant. I can help you analyze your sales data.\n\n**Try asking:**\n- *Show me sample data*\n- *Who are the top sales reps?*\n- *What is the total revenue?*"
         st.session_state.messages.append({"role": "assistant", "content": response})
         with st.chat_message("assistant"):
             st.markdown(response)
-    else:
+            
+    elif intent == "SAMPLE_DATA":
+        with st.chat_message("assistant"):
+            st.markdown("Here is a preview of the **Leads** and **Sales Reps** data:")
+            
+            # Fetch sample data directly
+            import sqlite3
+            conn = sqlite3.connect('mock_sales.db')
+            try:
+                df_leads = pd.read_sql_query("SELECT * FROM LEADS LIMIT 3", conn)
+                df_reps = pd.read_sql_query("SELECT * FROM SALES_REPS LIMIT 3", conn)
+                
+                st.subheader("Leads (Preview)")
+                st.dataframe(mask_pii(df_leads))
+                
+                st.subheader("Sales Reps (Preview)")
+                st.dataframe(mask_pii(df_reps))
+                
+                response_text = "I've displayed some sample data above."
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response_text,
+                    "data": mask_pii(df_leads) # Storing one for history simplicity
+                })
+            except Exception as e:
+                st.error(f"Error fetching sample data: {e}")
+            finally:
+                conn.close()
+
+    elif intent == "GENERAL":
+        # Soft fallback instead of blocking
+        response = "I see you're asking a general question. While I specialize in Sales data (Leads, Deals, Revenue), I'll try my best or you can rephrase to ask about your data."
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.markdown(response)
+            
+    else: # SALES_QUERY
         with st.chat_message("assistant"):
             with st.spinner("Generating SQL..."):
                 try:
