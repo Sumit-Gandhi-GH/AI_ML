@@ -14,7 +14,12 @@ st.title("Sales Data Assistant 🤖")
 # Sidebar
 with st.sidebar:
     st.header("Settings")
-    model_choice = st.selectbox("Select Model", ["gpt-4o", "snowflake-arctic-instruct", "gemini-1.5-pro", "gemini-3-pro"], index=0)
+    model_choice = st.selectbox("Select Model", [
+        "ollama-arctic-lite",
+        "gemini-1.5-pro",
+        "gemini-3-pro-preview",
+        "snowflake-arctic-text2sql"
+    ], index=0)
     st.info("Using Mock SQLite Database for demonstration.")
     
     if st.button("Clear Chat History"):

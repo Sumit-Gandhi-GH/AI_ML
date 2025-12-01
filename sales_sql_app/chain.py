@@ -1,13 +1,24 @@
 import os
 import sqlite3
 import pandas as pd
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from puter_client import get_puter_client
+from snowflake_client import get_snowflake_client
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from dotenv import load_dotenv
+import langchain
+
+# Patch for missing verbose attribute in newer langchain versions
+if not hasattr(langchain, 'verbose'):
+    langchain.verbose = False
+if not hasattr(langchain, 'debug'):
+    langchain.debug = False
+if not hasattr(langchain, 'llm_cache'):
+    langchain.llm_cache = None
 
 from prompts import SYSTEM_PROMPT, FEW_SHOT_EXAMPLES
 
@@ -15,11 +26,38 @@ load_dotenv()
 
 # Initialize Vector Store for Few-Shot Examples
 def setup_vector_store():
-    embeddings = OpenAIEmbeddings()
-    texts = [ex["question"] for ex in FEW_SHOT_EXAMPLES]
-    metadatas = [{"sql": ex["sql"]} for ex in FEW_SHOT_EXAMPLES]
-    vectorstore = FAISS.from_texts(texts, embeddings, metadatas=metadatas)
-    return vectorstore
+    """
+    Setup vector store with Ollama embeddings (snowflake-arctic-embed2:568m).
+    """
+    # Use Ollama for embeddings
+    embeddings = OllamaEmbeddings(
+        model="snowflake-arctic-embed2:568m",
+        base_url="http://localhost:11434"
+    )
+    
+    # Index directory
+    index_path = "faiss_index_ollama"
+    
+    # Try to load existing index
+    if os.path.exists(index_path) and os.path.isdir(index_path):
+        try:
+            if os.path.exists(os.path.join(index_path, "index.faiss")):
+                return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+        except Exception as e:
+            print(f"Error loading FAISS index: {e}")
+
+    # Create new index
+    try:
+        print("Creating new vector store with Ollama embeddings...")
+        texts = [ex["question"] for ex in FEW_SHOT_EXAMPLES]
+        metadatas = [{"sql": ex["sql"]} for ex in FEW_SHOT_EXAMPLES]
+        vectorstore = FAISS.from_texts(texts, embeddings, metadatas=metadatas)
+        vectorstore.save_local(index_path)
+        print("Vector store created and saved.")
+        return vectorstore
+    except Exception as e:
+        print(f"Error creating vector store: {e}")
+        return None
 
 # Mock Database Setup
 def setup_mock_db():
@@ -45,7 +83,8 @@ def setup_mock_db():
     conn.close()
 
 def get_schema_context():
-    with open('schema_context.md', 'r') as f:
+    schema_path = os.path.join(os.path.dirname(__file__), 'schema_context.md')
+    with open(schema_path, 'r') as f:
         return f.read()
 
 def get_few_shot_examples(query, vectorstore):
@@ -55,13 +94,16 @@ def get_few_shot_examples(query, vectorstore):
         examples += f"Q: {doc.page_content}\nSQL: {doc.metadata['sql']}\n\n"
     return examples
 
-def generate_sql(query, model_name="gpt-4o"):
+def generate_sql(query, model_name="gemini-3-pro-preview"):
     try:
         vectorstore = setup_vector_store()
-        examples = get_few_shot_examples(query, vectorstore)
+        if vectorstore:
+            examples = get_few_shot_examples(query, vectorstore)
+        else:
+            examples = "No examples available due to embedding API limits."
     except Exception as e:
-        print(f"Vector store error (likely missing API key): {e}")
-        examples = ""
+        print(f"Vector store error: {e}")
+        examples = "No examples available."
 
     schema = get_schema_context()
     
@@ -70,20 +112,64 @@ def generate_sql(query, model_name="gpt-4o"):
         ("human", "{query}")
     ])
     
-    # Fallback to a simpler model if needed, or use the requested one
-    if "gemini" in model_name.lower():
+    # Route to appropriate LLM based on model name
+    if "ollama" in model_name.lower():
+        llm = ChatOllama(
+            model="arctic-sql-lite",
+            temperature=0,
+            base_url="http://localhost:11434"
+        )
+    
+    elif "snowflake" in model_name.lower():
+        try:
+            client = get_snowflake_client()
+            return client.generate_sql(query, schema)
+        except Exception as e:
+            print(f"Error calling Snowflake model: {e}")
+            # Fallback to Gemini
+            model_name = "gemini-1.5-pro"
+            llm = ChatGoogleGenerativeAI(model=model_name, temperature=0)
+
+    elif "claude" in model_name.lower():
+        # Use Puter client for Claude models
+        puter = get_puter_client()
+        
+        # Format prompt for Puter
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT.format(schema=schema, examples=examples)},
+            {"role": "user", "content": query}
+        ]
+        
+        # Call Puter with Claude model - NO FALLBACK so we see real errors
+        response = puter.chat(model_name, messages, temperature=0)
+        return response
+    
+    elif "gemini" in model_name.lower():
         llm = ChatGoogleGenerativeAI(model=model_name, temperature=0)
+        
     else:
-        llm = ChatOpenAI(model=model_name, temperature=0)
+        # Default to Gemini if unknown
+        llm = ChatGoogleGenerativeAI(model="gemini-3-pro-preview", temperature=0)
     
     chain = (
         {"schema": lambda x: schema, "examples": lambda x: examples, "query": RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
+        | clean_sql_output
     )
     
     return chain.invoke(query)
+
+def clean_sql_output(text):
+    """Extract SQL from markdown code blocks or raw text."""
+    import re
+    # Look for ```sql ... ``` or ``` ... ```
+    match = re.search(r"```(?:sql)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    # If no code block, return original text (cleaned of whitespace)
+    return text.strip()
 
 def execute_sql(sql):
     # For now, executing against the mock SQLite DB

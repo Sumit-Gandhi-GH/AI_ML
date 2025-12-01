@@ -10,3 +10,10 @@ sqlalchemy
 openai
 tiktoken
 langchain-google-genai
+putergenai
+sentence-transformers
+torch
+transformers
+accelerate
+langchain-ollama
+
